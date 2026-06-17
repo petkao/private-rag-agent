@@ -399,7 +399,8 @@ if uploaded_files:
                 f.write(uploaded_file.getbuffer())
             
             with st.sidebar.spinner(f"Ingesting {uploaded_file.name}..."):
-                num_chunks, err = index_file(temp_path, uploaded_file.name, collection, embedding_model)
+                # Swap out 'embedding_model' for your new 'serverless_ef' object
+                num_chunks, err = index_file(temp_path, uploaded_file.name, collection, serverless_ef)
                 if err:
                     st.sidebar.error(f"Error {uploaded_file.name}: {err}")
                 else:
