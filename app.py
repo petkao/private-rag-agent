@@ -289,11 +289,20 @@ os.makedirs(session_vault_dir, exist_ok=True)
 os.makedirs(settings.DB_DIR, exist_ok=True)
 
 # Connect to database using isolated collection name based on session_id
+import chromadb.utils.embedding_functions as embedding_functions
+
 chroma_client = chromadb.PersistentClient(path=settings.DB_DIR)
 
 # Change this to a single stable name for the app
 collection_name = "private_rag_storage"
-collection = chroma_client.get_or_create_collection(name=collection_name)
+
+# Define the actual serverless embedding function right here
+serverless_ef = embedding_functions.ONNXMiniLM_L6_V2()
+
+collection = chroma_client.get_or_create_collection(
+    name=collection_name,
+    embedding_function=serverless_ef
+)
 
 # Query Ollama to populate choices
 installed_models = get_installed_ollama_models()
