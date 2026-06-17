@@ -293,10 +293,10 @@ import chromadb.utils.embedding_functions as embedding_functions
 
 chroma_client = chromadb.PersistentClient(path=settings.DB_DIR)
 
-# Change this to a single stable name for the app
-collection_name = "private_rag_storage"
+# Change this to a fresh name to resolve the configuration conflict
+collection_name = "private_rag_serverless"
 
-# Define the actual serverless embedding function right here
+# Define the serverless embedding function
 serverless_ef = embedding_functions.ONNXMiniLM_L6_V2()
 
 collection = chroma_client.get_or_create_collection(
