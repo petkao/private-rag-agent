@@ -202,26 +202,22 @@ def index_file(file_path, filename, collection, embedding_model):
             
         if not chunks:
             return 0, "No readable text content parsed."
-
         for i, chunk in enumerate(chunks):
             clean_text = chunk.encode('utf-8', errors='ignore').decode('utf-8').strip()
             if clean_text:
-                response = ollama_client.embed(model=embedding_model, input=clean_text)
-                vector_embeddings = response['embeddings'][0]
-                # When adding documents:
+                chunk_id = f"{filename}_chunk_{i}"
+                
+                # Strip out the manual ollama_client.embed calculations!
+                # By omitting the 'embeddings' parameter here, ChromaDB automatically
+                # invokes the serverless_ef engine we registered during initialization.
                 collection.add(
-                    documents=[chunk_text],
+                    documents=[clean_text],
                     ids=[chunk_id],
                     metadatas=[{"session_id": st.session_state.session_id}]  # Tag it!
                 )
-
-                # When querying documents:
-                results = collection.query(
-                    query_texts=[user_query],
-                    n_results=4,
-                    where={"session_id": st.session_state.session_id}  # Filter it!
-                )
+                
         return len(chunks), None
+
     except Exception as e:
         return 0, str(e)
 
@@ -400,7 +396,7 @@ if uploaded_files:
             
             with st.sidebar.spinner(f"Ingesting {uploaded_file.name}..."):
                 # Swap out 'embedding_model' for your new 'serverless_ef' object
-                num_chunks, err = index_file(temp_path, uploaded_file.name, collection, serverless_ef)
+                num_chunks, err = index_file(temp_path, uploaded_file.name, collection, "bge-large-en-v1.5")
                 if err:
                     st.sidebar.error(f"Error {uploaded_file.name}: {err}")
                 else:
