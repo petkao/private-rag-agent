@@ -309,13 +309,11 @@ else:
 
 # Select default brain model options safely
 default_llm = "llama-3.3-70b-versatile""
-if "llama-3.3-70b-specdec" in llm_options:
-    default_llm = "llama-3.3-70b-specdec"
-elif "llama-3.3-70b-versatile" in llm_options:
-    default_llm = "llama-3.3-70b-versatile"
-else:
+# Set the default model cleanly using its placement position in the list
+if len(llm_options) > 0:
     default_llm = llm_options[0]
-    # Force a fast, production cloud model as the absolute default
+else:
+    default_llm = "llama-3.3-70b-specdec"
 
 default_embedding = "nomic-embed-text:latest" if "nomic-embed-text:latest" in embedding_options else (
     "nomic-embed-text" if "nomic-embed-text" in embedding_options else embedding_options[0]
