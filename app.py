@@ -316,7 +316,7 @@ elif "llama-3.3-70b-versatile" in llm_options:
 elif "qwen3:8b" in llm_options:
     default_llm = "qwen3:8b"
 else:
-    default_llm = llm_options[0]
+    default_llm = "llama-3.3-70b-versatile"
 
 default_embedding = "nomic-embed-text:latest" if "nomic-embed-text:latest" in embedding_options else (
     "nomic-embed-text" if "nomic-embed-text" in embedding_options else embedding_options[0]
