@@ -6,3 +6,4 @@ langchain
 pandas
 numpy
 langgraph
+ollama
