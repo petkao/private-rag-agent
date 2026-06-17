@@ -308,7 +308,7 @@ else:
     embedding_options = ["nomic-embed-text:latest"]
 
 # Select default brain model options safely
-default_llm = "llama-3.3-70b-versatile""
+default_llm = llm_options[0]
 # Set the default model cleanly using its placement position in the list
 if len(llm_options) > 0:
     default_llm = llm_options[0]
