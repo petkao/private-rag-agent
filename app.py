@@ -208,11 +208,18 @@ def index_file(file_path, filename, collection, embedding_model):
             if clean_text:
                 response = ollama_client.embed(model=embedding_model, input=clean_text)
                 vector_embeddings = response['embeddings'][0]
+                # When adding documents:
                 collection.add(
-                    ids=[f"{filename}_chunk_{i}"],
-                    embeddings=[vector_embeddings],
-                    documents=[clean_text],
-                    metadatas=[{"filename": filename, "format": filename.split('.')[-1].lower(), "path": file_path}]
+                    documents=[chunk_text],
+                    ids=[chunk_id],
+                    metadatas=[{"session_id": st.session_state.session_id}]  # Tag it!
+                )
+
+                # When querying documents:
+                results = collection.query(
+                    query_texts=[user_query],
+                    n_results=4,
+                    where={"session_id": st.session_state.session_id}  # Filter it!
                 )
         return len(chunks), None
     except Exception as e:
@@ -283,7 +290,9 @@ os.makedirs(settings.DB_DIR, exist_ok=True)
 
 # Connect to database using isolated collection name based on session_id
 chroma_client = chromadb.PersistentClient(path=settings.DB_DIR)
-collection_name = f"session_{st.session_state.session_id}"
+
+# Change this to a single stable name for the app
+collection_name = "private_rag_storage"
 collection = chroma_client.get_or_create_collection(name=collection_name)
 
 # Query Ollama to populate choices
