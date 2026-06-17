@@ -522,11 +522,10 @@ if user_prompt := st.chat_input("Query local agent..."):
 
         # Helper to run vector database query
         def retrieve_local_context(query, col, embed_model):
-            q_emb = get_query_embedding(query, embed_model)
-            if q_emb is None:
-                return ""
             try:
-                db_results = col.query(query_embeddings=[q_emb], n_results=2)
+                # Ditch manual embedding extraction! 
+                # Pass the raw string to query_texts, and Chroma will use serverless_ef automatically.
+                db_results = col.query(query_texts=[query], n_results=4)
                 docs = db_results.get('documents', [[]])[0]
                 return "\n---\n".join(docs) if docs else ""
             except Exception:
