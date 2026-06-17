@@ -618,7 +618,7 @@ Answer the user's question accurately using only the provided context. If the an
                 
                 # 2. Call the web-accessible cloud model
                 cloud_payload = groq_client.chat.completions.create(
-                    model="llama3-8b-8192", 
+                    model="llama-3.3-70b-versatile", 
                     messages=[{"role": "user", "content": rag_prompt}]
                 )
                 
