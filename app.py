@@ -277,6 +277,10 @@ if "messages" not in st.session_state:
 if "indexed_files" not in st.session_state:
     st.session_state.indexed_files = []
 
+if "session_id" not in st.session_state:
+    import uuid
+    st.session_state.session_id = str(uuid.uuid4())
+
 if "system_seeded" not in st.session_state:
     st.session_state.system_seeded = False
 
