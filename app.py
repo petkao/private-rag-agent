@@ -597,12 +597,29 @@ if user_prompt := st.chat_input("Query local agent..."):
                             break
             except Exception as e:
                 st.error(f"Error during tool dispatch step: {e}")
-            
+                            
             if not has_tool_call:
                 status.update(label="✓ Synthesizing response using local context...", state="running")
+                
+                # Construct a clean RAG prompt combining user question + document chunks
+                rag_prompt = f"""You are a helpful assistant answering questions using local document context.
+                
+CONTEXT FROM VAULT DOCUMENTS:
+{private_context}
+
+USER QUESTION:
+{user_prompt}
+
+Answer the user's question accurately using only the provided context. If the answer cannot be found in the context, state that clearly."""
+
+                # Execute the generation call to populate the local 'response' variable
+                response = ollama_client.chat(
+                    model=llm_model,
+                    messages=[{"role": "user", "content": rag_prompt}]
+                )
             else:
                 status.update(label="✓ Web results integrated. Synthesizing response...", state="running")
-                
+
             time.sleep(0.2)
             status.update(label="✓ Analysis complete", state="complete", expanded=False)
 
