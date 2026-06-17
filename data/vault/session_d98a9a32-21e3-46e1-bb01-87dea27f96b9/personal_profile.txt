@@ -1,0 +1,3 @@
+User Hardware Architecture: Prefers Mac ecosystem setups (MacBook Air/iPhone configuration).
+Financial Threshold Constraints: Cap any electronics purchases at $200 maximum limits.
+Performance Requirements: Must feature active battery efficiency configurations exceeding 15 hours.
