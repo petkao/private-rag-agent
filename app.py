@@ -289,14 +289,15 @@ os.makedirs(session_vault_dir, exist_ok=True)
 os.makedirs(settings.DB_DIR, exist_ok=True)
 
 # Connect to database using isolated collection name based on session_id
+import os
 import chromadb.utils.embedding_functions as embedding_functions
 
-chroma_client = chromadb.PersistentClient(path=settings.DB_DIR)
+# Force a brand-new database directory to bypass the corrupted SQLite file
+clean_db_path = os.path.join(settings.DB_DIR, "serverless_v2")
+chroma_client = chromadb.PersistentClient(path=clean_db_path)
 
-# Change this to a fresh name to resolve the configuration conflict
+# Collection configuration matching our new serverless architecture
 collection_name = "private_rag_serverless"
-
-# Define the serverless embedding function
 serverless_ef = embedding_functions.ONNXMiniLM_L6_V2()
 
 collection = chroma_client.get_or_create_collection(
