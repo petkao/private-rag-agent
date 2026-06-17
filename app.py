@@ -305,7 +305,12 @@ else:
         "gemma4:12b", 
         "qwen2.5:7b"
     ]
-    embedding_options = ["nomic-embed-text:latest"]
+
+    embedding_options = [
+    "bge-large-en-v1.5",  # Groq Cloud Embedding Model
+    "nomic-embed-text:latest",
+    "nomic-embed-text"
+]
 
 # Select default brain model options safely
 default_llm = llm_options[0]
@@ -315,9 +320,7 @@ if len(llm_options) > 0:
 else:
     default_llm = "llama-3.3-70b-specdec"
 
-default_embedding = "nomic-embed-text:latest" if "nomic-embed-text:latest" in embedding_options else (
-    "nomic-embed-text" if "nomic-embed-text" in embedding_options else embedding_options[0]
-)
+default_embedding = "bge-large-en-v1.5" if "bge-large-en-v1.5" in embedding_options else embedding_options[0]
 
 # ──────────────────────────────────────────────────────────────────────────────
 # STREAMLIT SIDEBAR: CONTROL CENTER
