@@ -597,11 +597,10 @@ if user_prompt := st.chat_input("Query local agent..."):
                             break
             except Exception as e:
                 st.error(f"Error during tool dispatch step: {e}")
-                            
+
             if not has_tool_call:
                 status.update(label="✓ Synthesizing response using local context...", state="running")
                 
-                # Construct a clean RAG prompt combining user question + document chunks
                 rag_prompt = f"""You are a helpful assistant answering questions using local document context.
                 
 CONTEXT FROM VAULT DOCUMENTS:
@@ -612,17 +611,31 @@ USER QUESTION:
 
 Answer the user's question accurately using only the provided context. If the answer cannot be found in the context, state that clearly."""
 
-                # Execute the generation call to populate the local 'response' variable
-                response = ollama_client.chat(
-                    model=llm_model,
+                # 1. Initialize the cloud client natively inside the production block
+                import os
+                from groq import Groq
+                groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+                
+                # 2. Call the web-accessible cloud model
+                cloud_payload = groq_client.chat.completions.create(
+                    model="llama3-8b-8192", 
                     messages=[{"role": "user", "content": rag_prompt}]
                 )
+                
+                # 3. MOCK CLASS TRICK: Map the cloud text back into the exact structure 
+                # your downstream code expects (so response.message.content works perfectly!)
+                class MockMessage:
+                    def __init__(self, content):
+                        self.content = content
+                class MockResponse:
+                    def __init__(self, content):
+                        self.message = MockMessage(content)
+                        
+                response = MockResponse(cloud_payload.choices[0].message.content)
+                                        
             else:
                 status.update(label="✓ Web results integrated. Synthesizing response...", state="running")
-
-            time.sleep(0.2)
-            status.update(label="✓ Analysis complete", state="complete", expanded=False)
-
+                            
         # Generate transaction metadata for assistant response
         ref_id = f"REF-{uuid.uuid4().hex[:6].upper()}"
         mode_val = "RAG + Web Search" if has_tool_call else "Offline RAG"
