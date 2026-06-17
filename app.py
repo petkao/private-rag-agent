@@ -297,26 +297,25 @@ if installed_models:
         embedding_options = ["nomic-embed-text:latest"] + installed_models
 else:
     llm_options = [
-    "llama-3.3-70b-versatile", 
-    "llama-3.1-8b-instant", 
-    "mixtral-8x7b-32768", 
-    "qwen3:8b", 
-    "gemma4:12b", 
-    "qwen2.5:7b"
-]
+        "llama-3.3-70b-specdec",
+        "llama-3.3-70b-versatile", 
+        "llama-3.1-8b-instant", 
+        "mixtral-8x7b-32768", 
+        "qwen3:8b", 
+        "gemma4:12b", 
+        "qwen2.5:7b"
+    ]
     embedding_options = ["nomic-embed-text:latest"]
 
 # Select default brain model options safely
 default_llm = "llama-3.3-70b-versatile""
-# Force a fast, production cloud model as the absolute default
 if "llama-3.3-70b-specdec" in llm_options:
     default_llm = "llama-3.3-70b-specdec"
 elif "llama-3.3-70b-versatile" in llm_options:
     default_llm = "llama-3.3-70b-versatile"
-elif "qwen3:8b" in llm_options:
-    default_llm = "qwen3:8b"
 else:
-    default_llm = "llama-3.3-70b-versatile"
+    default_llm = llm_options[0]
+    # Force a fast, production cloud model as the absolute default
 
 default_embedding = "nomic-embed-text:latest" if "nomic-embed-text:latest" in embedding_options else (
     "nomic-embed-text" if "nomic-embed-text" in embedding_options else embedding_options[0]
