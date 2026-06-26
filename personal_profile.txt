@@ -1,0 +1,4 @@
+[SYSTEM CONFIGURATION: PRIVATE USER PROFILE]
+Authorized Electronic Device Purchase Budget Limit: $2,500 USD per quarter.
+Primary Workstation Track: MacBook Air configuration setups.
+Secondary Sandbox Project Target: alpine-province-496207-t4 (Status: Decommissioned)
