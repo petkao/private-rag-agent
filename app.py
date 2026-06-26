@@ -16,6 +16,9 @@ import chromadb
 from pypdf import PdfReader
 from duckduckgo_search import DDGS
 from dotenv import load_dotenv
+# Near the top of app.py with your other imports
+from core.retriever import retrieve_local_context
+
 # ──────────────────────────────────────────────────────────────────────────────
 # FORCE HIGH-CONTRAST FOR DARK THEME TEXT READABILITY
 # ──────────────────────────────────────────────────────────────────────────────
@@ -520,21 +523,13 @@ if user_prompt := st.chat_input("Query local agent..."):
                 st.error(f"Embedding calculation failure: {e}")
                 return None
 
-        # Helper to run vector database query
-        def retrieve_local_context(query, col, embed_model):
-            try:
-                # Ditch manual embedding extraction! 
-                # Pass the raw string to query_texts, and Chroma will use serverless_ef automatically.
-                db_results = col.query(query_texts=[query], n_results=4)
-                docs = db_results.get('documents', [[]])[0]
-                return "\n---\n".join(docs) if docs else ""
-            except Exception:
-                return ""
+
 
         # Step 1: Initialize thinking status widget
         with st.status("🧠 Agent routing workflow...", expanded=True) as status:
             status.update(label="🔍 Querying local database contexts...", state="running")
-            private_context = retrieve_local_context(user_prompt, collection, serverless_ef)
+            # private_context = retrieve_local_context(user_prompt, collection, serverless_ef)
+            private_context = retrieve_local_context(user_prompt, col)
             
             if private_context:
                 st.write("**ChromaDB Matches Retrieved:**")
