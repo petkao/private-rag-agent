@@ -529,7 +529,7 @@ if user_prompt := st.chat_input("Query local agent..."):
         with st.status("🧠 Agent routing workflow...", expanded=True) as status:
             status.update(label="🔍 Querying local database contexts...", state="running")
             # private_context = retrieve_local_context(user_prompt, collection, serverless_ef)
-            private_context = retrieve_local_context(user_prompt, col)
+            private_context = retrieve_local_context(user_prompt, collection)
             
             if private_context:
                 st.write("**ChromaDB Matches Retrieved:**")
