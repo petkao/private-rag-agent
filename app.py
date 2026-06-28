@@ -222,7 +222,7 @@ def index_file(file_path, filename, collection):
                 collection.add(
                     documents=[clean_text],
                     ids=[chunk_id],
-                    metadatas=[{"session_id": st.session_state.session_id}]
+                    metadatas=[{"session_id": st.session_state.session_id, "filename": filename}]
                 )
         return len(chunks), None
     except Exception as e:
@@ -320,24 +320,37 @@ uploaded_files = st.sidebar.file_uploader(
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🗄️ Manage Storage Vault")
 
-current_files = get_all_uploaded_files(collection)
+# Query ChromaDB metadata directly to get the true list of files
+try:
+    all_data = collection.get(include=["metadatas"])
+    # Extract unique filenames from the metadata blocks safely
+    current_files = list(set([m["filename"] for m in all_data["metadatas"] if m and "filename" in m]))
+except Exception:
+    current_files = []
 
 if not current_files:
     st.sidebar.info("Your local vault is currently empty.")
 else:
     st.sidebar.caption(f"Currently indexing {len(current_files)} file(s):")
+
     for file_name in current_files:
-        col1, col2 = st.sidebar.columns([4, 1])
+        # Format display name gracefully
         display_name = file_name if len(file_name) <= 22 else f"{file_name[:19]}..."
-        col1.markdown(f"📄 `{display_name}`")
-        if col2.button("🗑️", key=f"del_{file_name}", help=f"Remove {file_name} from vault"):
+        
+        # 🌟 Force rendering on a single row as an explicit button action
+        if st.sidebar.button(f"🗑️ Delete {display_name}", key=f"del_{file_name}", help=f"Remove {file_name} from vault"):
             with st.spinner(f"Evicting {file_name}..."):
-                if delete_local_file_context(file_name, collection):
+                try:
+                    # Delete chunks matching this specific filename from the vector space
+                    collection.delete(where={"filename": file_name})
+                    
+                    # Keep our temporary session tracking state synchronized
                     st.session_state.indexed_files = [f for f in st.session_state.indexed_files if f["filename"] != file_name]
+                    
                     st.sidebar.success(f"Removed {file_name}!")
                     st.rerun()
-                else:
-                    st.sidebar.error("Failed to delete file.")
+                except Exception as e:
+                    st.sidebar.error(f"Failed to delete file: {e}")                
 
 if uploaded_files:
     for uploaded_file in uploaded_files:
@@ -346,7 +359,7 @@ if uploaded_files:
             temp_path = os.path.join(session_vault_dir, uploaded_file.name)
             with open(temp_path, "wb") as f:
                 f.write(uploaded_file.getbuffer())
-            with st.sidebar.spinner(f"Ingesting {uploaded_file.name}..."):
+            with st.spinner(f"Ingesting {uploaded_file.name}..."):
                 num_chunks, err = index_file(temp_path, uploaded_file.name, collection)
                 if err:
                     st.sidebar.error(f"Error {uploaded_file.name}: {err}")
