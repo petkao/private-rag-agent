@@ -392,6 +392,37 @@ uploaded_files = st.sidebar.file_uploader(
     key="uploader"
 )
 
+# ==========================================
+# 2. ADD THE MANAGE STORAGE CODE RIGHT HERE:
+# ==========================================
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 🗄️ Manage Storage Vault")
+
+# Fetch the live list of files from ChromaDB
+current_files = get_all_uploaded_files(collection)
+
+if not current_files:
+    st.sidebar.info("Your local vault is currently empty.")
+else:
+    st.sidebar.caption(f"Currently indexing {len(current_files)} file(s):")
+    
+    # Render each file with a targeted delete button next to it
+    for file_name in current_files:
+        col1, col2 = st.sidebar.columns([4, 1])
+        
+        # Display filename (truncated if too long for the sidebar)
+        display_name = file_name if len(file_name) <= 22 else f"{file_name[:19]}..."
+        col1.markdown(f"📄 `{display_name}`")
+        
+        # Render a compact delete button using a unique key per file
+        if col2.button("🗑️", key=f"del_{file_name}", help=f"Remove {file_name} from vault"):
+            with st.spinner(f"Evicting {file_name}..."):
+                if delete_local_file_context(file_name, collection):
+                    st.sidebar.success(f"Removed {file_name}!")
+                    st.rerun()
+                else:
+                    st.sidebar.error("Failed to delete file.")
+                    
 # Process any upload adjustments
 if uploaded_files:
     for uploaded_file in uploaded_files:
