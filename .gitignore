@@ -1,3 +1,14 @@
+# Local virtual environment and python cache
 .venv/
 __pycache__/
+*.pyc
+
+# Private keys and environment configurations
 .env
+.streamlit/secrets.toml
+
+# 🔒 CRITICAL: Prevent local databases and private user files from leaking
+data/
+chroma_db/
+**/serverless_v2/
+**/session_*/
