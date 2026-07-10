@@ -28,42 +28,29 @@ inject_custom_theme()
 # 🎨 STAGE 2: INJECT EMULATED DARK IDE STYLING LAYERS
 st.markdown("""
     <style>
-        /* Base application background and typography */
         .stApp {
             background-color: #0d0f12 !important;
             color: #e2e8f0 !important;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
         }
-        
-        /* FIX: Drastically reduce top padding of main chat window */
         [data-testid="stMainBlockContainer"] {
             max-width: 840px !important;
             padding: 1rem 2rem 5rem 2rem !important;
             margin: 0 auto !important;
         }
-        
-        /* FIX: Drastically reduce top padding of sidebar */
         [data-testid="stSidebarUserContent"] {
             padding-top: 1rem !important;
         }
-        
-        /* Sidebar container styling */
         [data-testid="stSidebar"] {
             background-color: #16191f !important;
             border-right: 1px solid #262c36 !important;
         }
-        
-        /* FIX: Tighten spacing between all adjacent elements / widgets */
         [data-testid="stVerticalBlock"] {
             gap: 0.75rem !important;
         }
-        
-        /* FIX: Specifically target and minimize native Streamlit element margins */
         .element-container {
             margin-bottom: 0.25rem !important;
         }
-        
-        /* FIX: Style and clean up the bottom prompt entry area */
         [data-testid="stChatInput"] {
             background-color: #16191f !important;
             border: 1px solid #262c36 !important;
@@ -71,13 +58,6 @@ st.markdown("""
             color: #ffffff !important;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
         }
-        
-        /* Custom card wrapper for alerts and markdown grids */
-        .element-container div.stAlert, .stMarkdown div[data-testid="stBlock"] {
-            border-radius: 8px !important;
-        }
-        
-        /* 🌟 FIX: High-contrast override for st.info blocks inside agent status context panels */
         div[data-testid="stNotification"] {
             background-color: #1e242e !important;
             border: 1px solid rgba(97, 175, 239, 0.2) !important;
@@ -85,20 +65,15 @@ st.markdown("""
         div[data-testid="stNotification"] * {
             color: #f1f5f9 !important;
         }
-
-        /* 🌟 FORCE COMPREHENSIVE BRIGHT TEXT INSIDE ST.STATUS CONTAINERS */
         div[data-testid="stStatusWidget"],
         div[data-testid="stStatusWidget"] *,
         .stStatusWidget,
         .stStatusWidget * {
             color: #ffffff !important;
         }
-        
-        /* Ensure the summary title text itself stays bright white too */
         summary[role="button"] div {
             color: #ffffff !important;
         }
-        
         code {
             background-color: #1e242e !important;
             color: #f1f5f9 !important;
@@ -115,7 +90,6 @@ st.markdown("""
 from config import settings
 load_dotenv()
 
-# Global Client Initialization
 groq_api_key = os.getenv("GROQ_API_KEY")
 if not groq_api_key:
     try:
@@ -128,10 +102,8 @@ groq_client = Groq(api_key=groq_api_key) if groq_api_key else None
 ollama_host = os.getenv("OLLAMA_HOST", settings.OLLAMA_HOST)
 ollama_client = ollama.Client(host=ollama_host)
 
-# Core retriever utilities
 from core.retriever import retrieve_local_context, get_all_uploaded_files, delete_local_file_context
 
-# Session State Foundations
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
 if "messages" not in st.session_state:
@@ -141,17 +113,16 @@ if "indexed_files" not in st.session_state:
 if "system_seeded" not in st.session_state:
     st.session_state.system_seeded = False
 
-# Establish Directory Paths
 session_vault_dir = os.path.join(settings.VAULT_DIR, f"session_{st.session_state.session_id}")
 os.makedirs(session_vault_dir, exist_ok=True)
 os.makedirs(settings.DB_DIR, exist_ok=True)
 
-# ChromaDB Serverless Orchestration
 clean_db_path = os.path.join(settings.DB_DIR, "serverless_v2")
 chroma_client = chromadb.PersistentClient(path=clean_db_path)
 collection_name = "private_rag_serverless"
 serverless_ef = embedding_functions.ONNXMiniLM_L6_V2()
 
+# FIX: Initialized globally outside of button logic to eliminate NameErrors
 collection = chroma_client.get_or_create_collection(
     name=collection_name,
     embedding_function=serverless_ef
@@ -161,19 +132,13 @@ collection = chroma_client.get_or_create_collection(
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
-
     .stApp {
         font-family: 'Outfit', sans-serif;
         background: linear-gradient(135deg, #090a0f 0%, #11131e 50%, #1a1528 100%) !important;
         color: #e2e8f0;
     }
-    .stMarkdown p, .stMarkdown li, .stMarkdown span {
-        color: #f1f5f9 !important;
-    }
-    .stMarkdown h1, .stMarkdown h2, .stMarkdown h3, .stMarkdown h4 {
-        color: #F0F2F6 !important;
-        font-weight: 700 !important;
-    }
+    .stMarkdown p, .stMarkdown li, .stMarkdown span { color: #f1f5f9 !important; }
+    .stMarkdown h1, .stMarkdown h2, .stMarkdown h3, .stMarkdown h4 { color: #F0F2F6 !important; font-weight: 700 !important; }
     div[data-testid="stSidebar"] {
         background: rgba(13, 15, 24, 0.85) !important;
         backdrop-filter: blur(20px);
@@ -187,17 +152,10 @@ st.markdown("""
         padding: 20px;
         box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
         margin-bottom: 20px;
-        transition: all 0.3s ease;
-    }
-    .glass-card:hover {
-        border-color: rgba(97, 175, 239, 0.3);
-        box-shadow: 0 12px 40px 0 rgba(97, 175, 239, 0.1);
-        transform: translateY(-1px);
     }
     h1, h2, h3 {
         font-family: 'Outfit', sans-serif;
         font-weight: 700 !important;
-        letter-spacing: -0.025em;
         background: linear-gradient(90deg, #61afef, #c678dd);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
@@ -207,10 +165,6 @@ st.markdown("""
         border: 2px dashed rgba(255, 255, 255, 0.15) !important;
         border-radius: 12px !important;
         padding: 15px !important;
-    }
-    section[data-testid="stFileUploader"]:hover {
-        border-color: #61afef !important;
-        background-color: rgba(97, 175, 239, 0.05) !important;
     }
     .status-badge {
         display: inline-block;
@@ -314,7 +268,6 @@ def get_installed_ollama_models():
     except Exception:
         return []
 
-# Engine Setup
 installed_models = get_installed_ollama_models()
 if installed_models:
     llm_options = [m for m in installed_models if "embed" not in m]
@@ -350,7 +303,7 @@ if not st.session_state.system_seeded:
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 📥 Local Document Vault")
-uploaded_files = st.sidebar.file_uploader("Drag & drop documents here", type=["pdf", "txt", "png", "jpg", "jpeg"], accept_multiple_files=True)
+uploaded_files = st.sidebar.file_uploader("Drag & drop documents here", type=["pdf", "txt", "png", "jpg", "jpeg"], accept_multiple_files=True, key="uploader")
 
 if uploaded_files:
     for uploaded_file in uploaded_files:
@@ -375,9 +328,12 @@ except Exception:
 if not current_files:
     st.sidebar.info("Your local vault is currently empty.")
 else:
+    # FIX: Clean sidebar columns with targeted deletion tracking keys
     for file_name in current_files:
         display_name = file_name if len(file_name) <= 22 else f"{file_name[:19]}..."
-        if st.sidebar.button(f"🗑️ Delete {display_name}", key=f"del_{file_name}"):
+        col1, col2 = st.sidebar.columns([4, 1])
+        col1.markdown(f"📄 `{display_name}`")
+        if col2.button("🗑️", key=f"del_{file_name}"):
             collection.delete(where={"filename": file_name})
             st.session_state.indexed_files = [f for f in st.session_state.indexed_files if f["filename"] != file_name]
             st.rerun()
@@ -406,28 +362,24 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# Always render the quick start templates if no messages are present
-# --- REPLACED: NEW INTERACTIVE DIAGNOSTIC CHIPS PANEL ---
+# FIX: Streamlined interactive diagnostic chips mapping
 selected_query = None
 
 if not st.session_state.messages:
     st.markdown("### ⚡ Quick Diagnostic Tests")
     st.caption("Click a query below to automatically test your RAG routing & vector match capabilities:")
     
-    # Define our three core diagnostic query vectors
     test_queries = {
         "🔒 Test Local Vault": "What are the specific constraints mentioned in my files?",
         "🌐 Test Live Web Fallback": "What is the current stock price and chart trend for Nvidia today?",
         "🧩 Test Hybrid Logic": "Based on my personal tech budget limits, can I afford a new MacBook Air right now?"
     }
     
-    # Create responsive layout column blocks
     chip_cols = st.columns(3)
     for i, (label, query_text) in enumerate(test_queries.items()):
         if chip_cols[i].button(label, use_container_width=True, help=f"Run: '{query_text}'"):
             selected_query = query_text
 
-# Core Canvas Rendering Loop
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         if message["role"] == "assistant":
@@ -441,7 +393,7 @@ for message in st.session_state.messages:
             st.markdown(badges_html, unsafe_allow_html=True)
         st.markdown(f'<div style="line-height: 1.6; color: #f1f5f9; padding: 6px 10px; white-space: pre-wrap; word-wrap: break-word;">{message["content"]}</div>', unsafe_allow_html=True)
 
-# Await New Submissions (Accepts text input OR chip selections)
+# Await New Submissions (Captures both input box entries and active diagnostic chips)
 user_input = st.chat_input("Query local agent...", key="primary_chat_input_canvas")
 active_prompt = selected_query if selected_query else user_input
 
@@ -454,7 +406,6 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
     last_user_msg = st.session_state.messages[-1]["content"]
     
     with st.chat_message("assistant"):
-        # 🌟 FIX: Use a clean, custom glass card container instead of st.status
         progress_box = st.empty()
         
         def update_progress(milestone_text, details=""):
@@ -523,7 +474,6 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
             update_progress("Web results integrated. Streaming final synthesis...")
             time.sleep(0.3)
             
-        # Clear out the processing box once the final answer begins rendering
         progress_box.empty()
         
         ref_id = f"REF-{uuid.uuid4().hex[:6].upper()}"
