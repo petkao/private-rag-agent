@@ -55,6 +55,23 @@ st.markdown("""
     }
     
 /* 4. Sidebar Overrides & Visibility Fixes */
+/* Fix File Uploader Box Visibility and Inner Contrast */
+    section[data-testid="stFileUploader"] {
+        background-color: #161920 !important;
+        border: 1px dashed #3e4451 !important;
+        border-radius: 10px !important;
+        padding: 10px !important;
+    }
+    section[data-testid="stFileUploader"] *,
+    [data-testid="stFileUploadDropzone"] div {
+        color: #f1f5f9 !important;
+        -webkit-text-fill-color: #f1f5f9 !important;
+    }
+    [data-testid="stFileUploadDropzone"] button {
+        background-color: #212631 !important;
+        border: 1px solid #3e4451 !important;
+        color: #ffffff !important;
+    }
     section[data-testid="stSidebar"],
     div[data-testid="stSidebar"],
     div[data-testid="stSidebarUserContent"] {
@@ -240,6 +257,20 @@ with st.sidebar.expander("⚙️ Advanced Engine Settings", expanded=False):
     embedding_model = st.selectbox("Select Embedding Model", embedding_options, index=0)
 
 st.sidebar.markdown("---")
+
+# 🎭 RESTORED: DEMO SANDBOX ONBOARDING
+st.sidebar.markdown("<h3 style='color: #ffffff;'>🎯 Risk-Free Sandbox Onboarding</h3>", unsafe_allow_html=True)
+st.sidebar.markdown("<p style='font-size: 0.82rem; color: #abb2bf; margin-top:-5px;'>✓ Free to try locally — 100% private sandbox</p>", unsafe_allow_html=True)
+
+if st.sidebar.button("🎭 Load Demo Sample Data", use_container_width=True):
+    st.session_state.indexed_files = [
+        {"filename": "company_travel_policy_2026.pdf", "chunks": 8},
+        {"filename": "department_budget_limits.txt", "chunks": 3}
+    ]
+    st.sidebar.success("Loaded secure demo templates!")
+    time.sleep(0.5)
+    st.rerun()
+
 st.sidebar.markdown("<h3 style='color: #ffffff;'>📥 Step 1: Add Local Files</h3>", unsafe_allow_html=True)
 
 uploaded_files = st.sidebar.file_uploader(
