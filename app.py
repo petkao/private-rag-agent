@@ -301,11 +301,36 @@ st.sidebar.markdown("<h3 style='color: #ffffff;'>🎯 Risk-Free Sandbox Onboardi
 st.sidebar.markdown("<p style='font-size: 0.82rem; color: #abb2bf; margin-top:-5px;'>✓ Free to try locally — 100% private sandbox</p>", unsafe_allow_html=True)
 
 if st.sidebar.button("🎭 Load Demo Sample Data", use_container_width=True):
-    st.session_state.indexed_files = [
-        {"filename": "company_travel_policy_2026.pdf", "chunks": 8},
-        {"filename": "department_budget_limits.txt", "chunks": 3}
-    ]
-    st.sidebar.success("Loaded secure demo templates!")
+    # 1. Define the real text strings that your query chips look for
+    demo_docs = {
+        "company_travel_policy_2026.pdf": [
+            "Company Travel Policy 2026: All international flights must be approved by a Department Head 14 days in advance.",
+            "Travel Regulations 2026: Economy class is mandatory for domestic flights under 5 hours. Business class is permitted for flights over 5 hours.",
+            "Expense Policy 2026: Daily meal allowance (per diem) is capped at $75 USD per day. Itemized receipts are required for all hotel incidentals."
+        ],
+        "department_budget_limits.txt": [
+            "Department Budget Limits: The standard electronic device purchase budget limit is strictly capped at $1,200 per employee per year.",
+            "Hardware Upgrades: Any device purchase exceeding $1,200 requires a formal business justification signed by the IT Director.",
+            "Software Procurement: Individual recurring cloud subscription allowances are set at $50 per user per month maximum."
+        ]
+    }
+    
+    # 2. Clear old session tracking state to avoid duplicates
+    st.session_state.indexed_files = []
+    
+    # 3. Add the real text vectors into your active ChromaDB collection
+    with st.sidebar.spinner("Injecting secure demo vectors..."):
+        for filename, chunks in demo_docs.items():
+            for i, chunk_text in enumerate(chunks):
+                collection.add(
+                    documents=[chunk_text],
+                    ids=[f"demo_{filename}_chunk_{i}"],
+                    metadatas=[{"session_id": st.session_state.session_id, "filename": filename}]
+                )
+            # Track it in Streamlit UI state
+            st.session_state.indexed_files.append({"filename": filename, "chunks": len(chunks)})
+            
+    st.sidebar.success("Loaded secure demo templates with real vector embeddings!")
     time.sleep(0.5)
     st.rerun()
 
