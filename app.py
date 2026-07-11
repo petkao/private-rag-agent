@@ -54,7 +54,35 @@ st.markdown("""
         border-right: 1px solid rgba(255, 255, 255, 0.05);
     }
     
-    /* Force Sidebar Wording Text to Be Visible */
+/* 4. Sidebar Overrides & Visibility Fixes */
+    section[data-testid="stSidebar"],
+    div[data-testid="stSidebar"],
+    div[data-testid="stSidebarUserContent"] {
+        background-color: #0b0d14 !important;
+        background: #0b0d14 !important;
+    }
+    
+    /* Force high-contrast text rendering for EVERYTHING in the sidebar */
+    section[data-testid="stSidebar"] p,
+    section[data-testid="stSidebar"] span,
+    section[data-testid="stSidebar"] label,
+    section[data-testid="stSidebar"] h1,
+    section[data-testid="stSidebar"] h2,
+    section[data-testid="stSidebar"] h3,
+    section[data-testid="stSidebar"] h4,
+    section[data-testid="stSidebar"] div {
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+    }
+    
+    /* Make the drop files text box and subtext legible */
+    section[data-testid="stFileUploader"] text,
+    section[data-testid="stFileUploader"] span,
+    section[data-testid="stFileUploader"] small {
+        color: #abb2bf !important;
+    }
+
+    /* Force Sidebar Expander Wording Text to Be Visible */
     [data-testid="stSidebar"] details summary,
     [data-testid="stSidebar"] details summary * {
         color: #ffffff !important;
