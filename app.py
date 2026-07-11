@@ -452,7 +452,6 @@ with col_viewer:
             </div>
             """, unsafe_allow_html=True)
 
-
 # ---------------------------------------------------------------------
 # PANEL 2 (RIGHT COLUMN): LIVE VECTOR CHAT STREAM
 # ---------------------------------------------------------------------
@@ -477,26 +476,28 @@ with col_chat:
 
     st.markdown("---")
 
-    # Conversation History Output Render Loop nested within column container
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            if message["role"] == "assistant":
-                st.markdown(f"""
-                    <div style="margin-bottom: 8px;">
-                        <span class='status-badge status-badge-purple'>STATUS: {message.get("status", "Success")}</span>
-                        <span class='status-badge status-badge-blue'>MODE: {message.get("mode", "Offline Context Engine")}</span>
-                    </div>
-                """, unsafe_allow_html=True)
-            st.markdown(f'<div style="line-height: 1.6; color: #f1f5f9; padding: 2px 6px;">{message["content"]}</div>', unsafe_allow_html=True)
+    # 🎛️ NEW: Pinned Height Viewport Container for Chat Stream
+    # This locks down the window size so history scrolls internally instead of stretching the main canvas down!
+    with st.container(height=450, border=False):
+        # Conversation History Output Render Loop nested within scrollable canvas
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
+                if message["role"] == "assistant":
+                    st.markdown(f"""
+                        <div style="margin-bottom: 8px;">
+                            <span class='status-badge status-badge-purple'>STATUS: {message.get("status", "Success")}</span>
+                            <span class='status-badge status-badge-blue'>MODE: {message.get("mode", "Offline Context Engine")}</span>
+                        </div>
+                    """, unsafe_allow_html=True)
+                st.markdown(f'<div style="line-height: 1.6; color: #f1f5f9; padding: 2px 6px;">{message["content"]}</div>', unsafe_allow_html=True)
 
-    # Main Form Chat Field Wrapper nested inside column container
+    # Main Form Chat Input Field stays anchored outside the scrollbox
     with st.form(key="secure_chat_form", clear_on_submit=True):
         user_input = st.text_input(label="💬 Query local database:", placeholder="Type a message or select a question card above...")
         submit_button = st.form_submit_button(label="🚀 Start Secure Search")
 
     # Extract final active prompt target query
     active_prompt = selected_chip_query if selected_chip_query else (user_input if submit_button else None)
-
 
 # =====================================================================
 # 🧠 STAGE 6: ACTIVE ASSISTANT GENERATION PIPELINE
