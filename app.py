@@ -49,9 +49,25 @@ st.markdown("""
     }
     
     /* 4. Sidebar Overrides & Visibility Fixes */
-    div[data-testid="stSidebar"] {
-        background: rgba(13, 15, 24, 0.95) !important;
-        border-right: 1px solid rgba(255, 255, 255, 0.05);
+    section[data-testid="stSidebar"] {
+        border-right: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    
+    /* Fix File Uploader Box Border Accent Colors */
+    section[data-testid="stFileUploader"] {
+        border: 2px dashed #4c5264 !important;
+        border-radius: 12px !important;
+        padding: 15px !important;
+    }
+    
+    /* Force Sidebar Expander Header Text to Stay Visible */
+    [data-testid="stSidebar"] details summary,
+    [data-testid="stSidebar"] details summary * {
+        color: #ffffff !important;
+        font-weight: 600 !important;
+    }
+    [data-testid="stSidebar"] details summary svg {
+        fill: #ffffff !important;
     }
     
 /* 4. Sidebar Overrides & Visibility Fixes */
