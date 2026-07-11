@@ -58,47 +58,35 @@ st.markdown("""
 /* Fix File Uploader Box Visibility and Inner Contrast */
     section[data-testid="stFileUploader"] {
         background-color: #161920 !important;
-        border: 1px dashed #3e4451 !important;
-        border-radius: 10px !important;
-        padding: 10px !important;
-    }
-    section[data-testid="stFileUploader"] *,
-    [data-testid="stFileUploadDropzone"] div {
-        color: #f1f5f9 !important;
-        -webkit-text-fill-color: #f1f5f9 !important;
-    }
-    [data-testid="stFileUploadDropzone"] button {
-        background-color: #212631 !important;
-        border: 1px solid #3e4451 !important;
-        color: #ffffff !important;
-    }
-    section[data-testid="stSidebar"],
-    div[data-testid="stSidebar"],
-    div[data-testid="stSidebarUserContent"] {
-        background-color: #0b0d14 !important;
-        background: #0b0d14 !important;
+        border: 2px dashed #3e4451 !important;
+        border-radius: 12px !important;
+        padding: 15px !important;
     }
     
-    /* Force high-contrast text rendering for EVERYTHING in the sidebar */
-    section[data-testid="stSidebar"] p,
-    section[data-testid="stSidebar"] span,
-    section[data-testid="stSidebar"] label,
-    section[data-testid="stSidebar"] h1,
-    section[data-testid="stSidebar"] h2,
-    section[data-testid="stSidebar"] h3,
-    section[data-testid="stSidebar"] h4,
-    section[data-testid="stSidebar"] div {
+    /* Target the specific labels inside the drop zone wrapper */
+    section[data-testid="stFileUploader"] label,
+    section[data-testid="stFileUploader"] p,
+    section[data-testid="stFileUploader"] span,
+    section[data-testid="stFileUploader"] small,
+    [data-testid="stFileUploadDropzone"] div,
+    [data-testid="stFileUploadDropzone"] p,
+    [data-testid="stFileUploadDropzone"] span {
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+        opacity: 1 !important;
+    }
+    
+    /* Make the browse files button legible and distinct */
+    [data-testid="stFileUploadDropzone"] button {
+        background-color: #212631 !important;
+        border: 1px solid #4c5264 !important;
         color: #ffffff !important;
         -webkit-text-fill-color: #ffffff !important;
     }
-    
-    /* Make the drop files text box and subtext legible */
-    section[data-testid="stFileUploader"] text,
-    section[data-testid="stFileUploader"] span,
-    section[data-testid="stFileUploader"] small {
-        color: #abb2bf !important;
+    [data-testid="stFileUploadDropzone"] button:hover {
+        border-color: #ffe066 !important;
+        color: #ffe066 !important;
     }
-
     /* Force Sidebar Expander Wording Text to Be Visible */
     [data-testid="stSidebar"] details summary,
     [data-testid="stSidebar"] details summary * {
