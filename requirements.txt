@@ -16,3 +16,4 @@ streamlit>=1.30.0
 chromadb>=0.4.0
 pypdf>=3.17.0
 groq>=0.4.2
+pytesseract

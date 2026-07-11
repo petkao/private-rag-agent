@@ -10,7 +10,7 @@ from pypdf import PdfReader
 from dotenv import load_dotenv
 from groq import Groq
 from config import settings
-import easyocr
+import pytesseract
 from PIL import Image as PILImage
 
 load_dotenv()
@@ -219,11 +219,11 @@ _ = pre_download_ocr_weights()
 # Standard cached interface reader
 @st.cache_resource
 def get_ocr_reader():
+    # Force an internal fallback so it never blocks the container startup
     try:
-        # Wrap initialization in a quick timeout guard safe-check
+        import easyocr
         return easyocr.Reader(['en'], gpu=False, model_storage_directory=ocr_model_dir)
     except Exception as e:
-        # If it fails or times out, return None instead of crashing the server
         return None
 
 reader_ocr = get_ocr_reader()
@@ -274,27 +274,26 @@ def extract_file_text(file_path, filename):
             else:
                 chunks.append(para)
                 
-    # 🖼️ NEW: IMAGE OCR PROCESSING TRACK
-    # 🖼️ SAFE-GUARDED IMAGE OCR PROCESSING TRACK
+    # 🖼️ LIGHTWEIGHT PACKAGED IMAGE OCR PROCESSING TRACK
     elif ext.endswith(('.png', '.jpg', '.jpeg')):
         try:
-            if reader_ocr is None:
-                chunks.append(f"[System Notice] OCR engine is still initializing or downloading models for {filename}. Please try re-uploading in a moment.")
-            else:
-                ocr_results = reader_ocr.readtext(file_path, detail=0)
-                if ocr_results:
-                    full_image_text = " ".join(ocr_results)
-                    if len(full_image_text) > 1000:
-                        for i in range(0, len(full_image_text), 1000):
-                            chunks.append(f"[Image Context Source: {filename}] " + full_image_text[i:i+1000])
-                    else:
-                        chunks.append(f"[Image Context Source: {filename}] " + full_image_text)
+            # Open image securely using Pillow wrapper
+            with PILImage.open(file_path) as img:
+                # Direct string extraction via native lightweight Tesseract engine
+                extracted_text = pytesseract.image_to_string(img)
+                
+            if extracted_text.strip():
+                full_image_text = " ".join(extracted_text.split())
+                if len(full_image_text) > 1000:
+                    for i in range(0, len(full_image_text), 1000):
+                        chunks.append(f"[Image Context Source: {filename}] " + full_image_text[i:i+1000])
                 else:
-                    chunks.append(f"[Image Context Source: {filename}] Visual matrix scanned. No horizontal text strings detected.")
+                    chunks.append(f"[Image Context Source: {filename}] " + full_image_text)
+            else:
+                chunks.append(f"[Image Context Source: {filename}] Visual matrix scanned. No clear alphanumeric text detected.")
         except Exception as e:
-            # Prevent unexpected library errors from killing the app session
-            chunks.append(f"[System Notice] OCR processing temporarily paused for {filename} due to container resource limits.")
-            
+            chunks.append(f"[System Notice] OCR extraction skipped for {filename}. Ensure tesseract-ocr binaries are loaded.")           
+
     return chunks
 
 # =====================================================================
