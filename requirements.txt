@@ -9,5 +9,10 @@ langgraph
 ollama
 protobuf==4.25.3
 duckduckgo-search
+# Force container rebuild update 2026
 easyocr>=1.7.1
 Pillow>=10.0.0
+streamlit>=1.30.0
+chromadb>=0.4.0
+pypdf>=3.17.0
+groq>=0.4.2
