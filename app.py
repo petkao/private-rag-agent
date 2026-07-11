@@ -199,9 +199,27 @@ collection_name = "private_rag_serverless"
 serverless_ef = embedding_functions.ONNXMiniLM_L6_V2()
 
 # Initialize EasyOCR Reader for English (cached to prevent reload latency)
+# Create a dedicated local directory inside your project for the weights
+ocr_model_dir = os.path.join(os.path.dirname(__file__), ".easyocr_models")
+os.makedirs(ocr_model_dir, exist_ok=True)
+
+# Pre-download weights at boot level so it never times out during an upload transaction
+@st.cache_resource
+def pre_download_ocr_weights():
+    try:
+        # This forces the download immediately when the server first boots up
+        easyocr.Reader(['en'], gpu=False, model_storage_directory=ocr_model_dir)
+        return True
+    except Exception as e:
+        return False
+
+# Trigger the boot download
+_ = pre_download_ocr_weights()
+
+# Standard cached interface reader
 @st.cache_resource
 def get_ocr_reader():
-    return easyocr.Reader(['en'], gpu=False)
+    return easyocr.Reader(['en'], gpu=False, model_storage_directory=ocr_model_dir)
 
 reader_ocr = get_ocr_reader()
 collection = chroma_client.get_or_create_collection(
