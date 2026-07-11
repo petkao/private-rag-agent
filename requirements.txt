@@ -9,3 +9,5 @@ langgraph
 ollama
 protobuf==4.25.3
 duckduckgo-search
+easyocr>=1.7.1
+Pillow>=10.0.0

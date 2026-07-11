@@ -10,6 +10,8 @@ from pypdf import PdfReader
 from dotenv import load_dotenv
 from groq import Groq
 from config import settings
+import easyocr
+from PIL import Image as PILImage
 
 load_dotenv()
 
@@ -206,6 +208,12 @@ chroma_client = chromadb.PersistentClient(path=clean_db_path)
 collection_name = "private_rag_serverless"
 serverless_ef = embedding_functions.ONNXMiniLM_L6_V2()
 
+# Initialize EasyOCR Reader for English (cached to prevent reload latency)
+@st.cache_resource
+def get_ocr_reader():
+    return easyocr.Reader(['en'], gpu=False)
+
+reader_ocr = get_ocr_reader()
 collection = chroma_client.get_or_create_collection(
     name=collection_name,
     embedding_function=serverless_ef
@@ -227,7 +235,9 @@ embedding_options = ["bge-large-en-v1.5", "nomic-embed-text"]
 # Helper function to extract document strings
 def extract_file_text(file_path, filename):
     chunks = []
-    if filename.lower().endswith('.pdf'):
+    ext = filename.lower()
+    
+    if ext.endswith('.pdf'):
         reader = PdfReader(file_path)
         current_chunk = ""
         for page in reader.pages:
@@ -239,7 +249,8 @@ def extract_file_text(file_path, filename):
                     current_chunk = ""
         if current_chunk:
             chunks.append(current_chunk.strip())
-    elif filename.lower().endswith('.txt'):
+            
+    elif ext.endswith('.txt'):
         with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
             text_content = f.read()
         paragraphs = [p.strip() for p in text_content.split("\n\n") if p.strip()]
@@ -249,6 +260,24 @@ def extract_file_text(file_path, filename):
                     chunks.append(para[i:i+1000])
             else:
                 chunks.append(para)
+                
+    # 🖼️ NEW: IMAGE OCR PROCESSING TRACK
+    elif ext.endswith(('.png', '.jpg', '.jpeg')):
+        try:
+            # Perform text recognition on image file path
+            ocr_results = reader_ocr.readtext(file_path, detail=0)
+            if ocr_results:
+                # Combine extracted text array into a cohesive string context
+                full_image_text = " ".join(ocr_results)
+                # Split text into chunks if the image has dense documentation content
+                if len(full_image_text) > 1000:
+                    for i in range(0, len(full_image_text), 1000):
+                        chunks.append(f"[Image Context Source: {filename}] " + full_image_text[i:i+1000])
+                else:
+                    chunks.append(f"[Image Context Source: {filename}] " + full_image_text)
+        except Exception as e:
+            st.sidebar.error(f"OCR Error processing {filename}: {e}")
+            
     return chunks
 
 # =====================================================================
@@ -279,7 +308,7 @@ st.sidebar.markdown("<h3 style='color: #ffffff;'>📥 Step 1: Add Local Files</h
 
 uploaded_files = st.sidebar.file_uploader(
     "Drop project files here", 
-    type=["pdf", "txt"], 
+    type=["pdf", "txt", "png", "jpg", "jpeg"],  # Added image extensions
     accept_multiple_files=True,
     key=f"uploader_{st.session_state.uploader_key}"
 )
