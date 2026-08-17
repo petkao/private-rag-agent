@@ -198,51 +198,52 @@ chroma_client = chromadb.PersistentClient(path=clean_db_path)
 collection_name = "private_rag_serverless"
 serverless_ef = embedding_functions.ONNXMiniLM_L6_V2()
 
-# Initialize EasyOCR Reader for English (cached to prevent reload latency)
-# Create a dedicated local directory inside your project for the weights
-ocr_model_dir = os.path.join(os.path.dirname(__file__), ".easyocr_models")
-os.makedirs(ocr_model_dir, exist_ok=True)
-
-# Pre-download weights at boot level so it never times out during an upload transaction
-@st.cache_resource
-def pre_download_ocr_weights():
-    try:
-        # This forces the download immediately when the server first boots up
-        easyocr.Reader(['en'], gpu=False, model_storage_directory=ocr_model_dir)
-        return True
-    except Exception as e:
-        return False
-
-# Trigger the boot download
-_ = pre_download_ocr_weights()
-
-# Standard cached interface reader
-@st.cache_resource
-def get_ocr_reader():
-    # Force an internal fallback so it never blocks the container startup
-    try:
-        import easyocr
-        return easyocr.Reader(['en'], gpu=False, model_storage_directory=ocr_model_dir)
-    except Exception as e:
-        return None
-
-reader_ocr = get_ocr_reader()
 collection = chroma_client.get_or_create_collection(
     name=collection_name,
     embedding_function=serverless_ef
 )
 
-# Model Options Mapping
-try:
-    model_list = ollama_client.list()
-    installed_models = [m['model'] for m in model_list.get('models', [])]
-except Exception:
-    installed_models = []
+# ---------------------------------------------------------------------
+# 🔄 DYNAMIC MODEL RETRIEVAL PIPELINE
+# ---------------------------------------------------------------------
+@st.cache_data(ttl=3600)
+def get_available_models():
+    """Dynamically fetches active chat models from Groq or falls back to Ollama."""
+    models = []
+    
+    # 1. Fetch live models from Groq if client is initialized
+    if groq_client:
+        try:
+            groq_models = groq_client.models.list()
+            # Filter out whisper / audio / vision-only endpoints to retain text chat models
+            models = [
+                m.id for m in groq_models.data 
+                if not any(excluded in m.id.lower() for excluded in ["whisper", "guard", "embed"])
+            ]
+            models.sort()
+        except Exception:
+            models = []
+            
+    # 2. Fallback to local Ollama if Groq returned no models
+    if not models:
+        try:
+            model_list = ollama_client.list()
+            models = [m['model'] for m in model_list.get('models', []) if "embed" not in m['model']]
+        except Exception:
+            models = []
+            
+    # 3. Static safety fallback list
+    if not models:
+        models = [
+            "llama-3.1-8b-instant",
+            "llama-3.1-70b-versatile",
+            "gemma2-9b-it",
+            "mixtral-8x7b-32768"
+        ]
+        
+    return models
 
-if installed_models:
-    llm_options = [m for m in installed_models if "embed" not in m]
-else:
-    llm_options = ["llama-3.1-8b-instant", "qwen2.5:7b", "gemma4:12b"]
+llm_options = get_available_models()
 embedding_options = ["bge-large-en-v1.5", "nomic-embed-text"]
 
 # Helper function to extract document strings
@@ -277,9 +278,7 @@ def extract_file_text(file_path, filename):
     # 🖼️ LIGHTWEIGHT PACKAGED IMAGE OCR PROCESSING TRACK
     elif ext.endswith(('.png', '.jpg', '.jpeg')):
         try:
-            # Open image securely using Pillow wrapper
             with PILImage.open(file_path) as img:
-                # Direct string extraction via native lightweight Tesseract engine
                 extracted_text = pytesseract.image_to_string(img)
                 
             if extracted_text.strip():
@@ -312,7 +311,6 @@ st.sidebar.markdown("<h3 style='color: #ffffff;'>🎯 Risk-Free Sandbox Onboardi
 st.sidebar.markdown("<p style='font-size: 0.82rem; color: #abb2bf; margin-top:-5px;'>✓ Free to try locally — 100% private sandbox</p>", unsafe_allow_html=True)
 
 if st.sidebar.button("🎭 Load Demo Sample Data", use_container_width=True):
-    # 1. Define the real text strings that your query chips look for
     demo_docs = {
         "company_travel_policy_2026.pdf": [
             "Company Travel Policy 2026: All international flights must be approved by a Department Head 14 days in advance.",
@@ -326,10 +324,8 @@ if st.sidebar.button("🎭 Load Demo Sample Data", use_container_width=True):
         ]
     }
     
-    # 2. Clear old session tracking state to avoid duplicates
     st.session_state.indexed_files = []
     
-    # 3. Add the real text vectors into your active ChromaDB collection
     with st.sidebar.spinner("Injecting secure demo vectors..."):
         for filename, chunks in demo_docs.items():
             for i, chunk_text in enumerate(chunks):
@@ -338,7 +334,6 @@ if st.sidebar.button("🎭 Load Demo Sample Data", use_container_width=True):
                     ids=[f"demo_{filename}_chunk_{i}"],
                     metadatas=[{"session_id": st.session_state.session_id, "filename": filename}]
                 )
-            # Track it in Streamlit UI state
             st.session_state.indexed_files.append({"filename": filename, "chunks": len(chunks)})
             
     st.sidebar.success("Loaded secure demo templates with real vector embeddings!")
@@ -439,7 +434,6 @@ with col_viewer:
         all_file_names = list(set(all_file_names))
         selected_preview = st.selectbox("🎯 Select file to visually verify:", all_file_names)
         
-        # Render Preview Engine based on extensions
         if selected_preview.lower().endswith(('.png', '.jpg', '.jpeg')):
             matched_file = next((f for f in uploaded_files if f.name == selected_preview), None) if uploaded_files else None
             if matched_file:
@@ -467,11 +461,10 @@ with col_viewer:
 # PANEL 2 (RIGHT COLUMN): LIVE VECTOR CHAT STREAM
 # ---------------------------------------------------------------------
 with col_chat:
-    st.markdown("<h3 style='color: #ffe066; border-bottom: 1px solid #212631; padding-bottom: 8px; margin-top:0;'>💬 Groq Context Chat</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='color: #ffe066; border-bottom: 1px solid #212631; padding-bottom: 8px; margin-top:0;'>💬 Context Chat Stream</h3>", unsafe_allow_html=True)
     
     st.markdown("<p style='font-size: 0.9rem; color: #ffe066; font-weight: 600; margin-bottom: 8px;'>📋 Sample Question Chips:</p>", unsafe_allow_html=True)
     
-    # Setup sample prompt query chips to trigger search lookups
     chip_col1, chip_col2, chip_col3 = st.columns(3)
     selected_chip_query = None
 
@@ -487,27 +480,22 @@ with col_chat:
 
     st.markdown("---")
 
-    # 🎛️ NEW: Pinned Height Viewport Container for Chat Stream
-    # This locks down the window size so history scrolls internally instead of stretching the main canvas down!
     with st.container(height=450, border=False):
-        # Conversation History Output Render Loop nested within scrollable canvas
         for message in st.session_state.messages:
             with st.chat_message(message["role"]):
                 if message["role"] == "assistant":
                     st.markdown(f"""
                         <div style="margin-bottom: 8px;">
                             <span class='status-badge status-badge-purple'>STATUS: {message.get("status", "Success")}</span>
-                            <span class='status-badge status-badge-blue'>MODE: {message.get("mode", "Offline Context Engine")}</span>
+                            <span class='status-badge status-badge-blue'>MODEL: {message.get("model", llm_model)}</span>
                         </div>
                     """, unsafe_allow_html=True)
                 st.markdown(f'<div style="line-height: 1.6; color: #f1f5f9; padding: 2px 6px;">{message["content"]}</div>', unsafe_allow_html=True)
 
-    # Main Form Chat Input Field stays anchored outside the scrollbox
     with st.form(key="secure_chat_form", clear_on_submit=True):
         user_input = st.text_input(label="💬 Query local database:", placeholder="Type a message or select a question card above...")
         submit_button = st.form_submit_button(label="🚀 Start Secure Search")
 
-    # Extract final active prompt target query
     active_prompt = selected_chip_query if selected_chip_query else (user_input if submit_button else None)
 
 # =====================================================================
@@ -516,7 +504,6 @@ with col_chat:
 if active_prompt:
     st.session_state.messages.append({"role": "user", "content": active_prompt})
     
-    # Re-trigger immediate update inside the chat panel visually
     with col_chat:
         with st.chat_message("user"):
             st.markdown(f'<div style="line-height: 1.6; color: #f1f5f9; padding: 2px 6px;">{active_prompt}</div>', unsafe_allow_html=True)
@@ -531,20 +518,20 @@ if active_prompt:
             except Exception:
                 context_documents = ""
                 
-            progress_box.markdown("<div class='glass-card'>🧠 Running local neural inference layers...</div>", unsafe_allow_html=True)
+            progress_box.markdown("<div class='glass-card'>🧠 Running neural inference layers...</div>", unsafe_allow_html=True)
             
             rag_prompt = f"Context from user files:\n{context_documents if context_documents else 'No relevant document snippets found in database.'}\n\nQuestion:\n{active_prompt}"
             
             status_val = "Local Context Success" if context_documents else "Zero Reference Matches"
-            mode_val = "Offline RAG Client"
             
             full_response = ""
             resp_placeholder = st.empty()
             
             try:
                 if groq_client:
+                    # Dynamically pass the active model chosen from the dropdown
                     stream = groq_client.chat.completions.create(
-                        model="llama-3.3-70b-versatile",
+                        model=llm_model,
                         messages=[{"role": "user", "content": rag_prompt}],
                         stream=True
                     )
@@ -558,7 +545,7 @@ if active_prompt:
                     
                 resp_placeholder.markdown(f'<div style="line-height: 1.6; color: #f1f5f9; padding: 2px 6px;">{full_response}</div>', unsafe_allow_html=True)
             except Exception as e:
-                full_response = f"Inference execution engine breakdown error context: {e}"
+                full_response = f"Inference execution engine error: {e}"
                 resp_placeholder.markdown(f"<div>{full_response}</div>", unsafe_allow_html=True)
                 status_val = "Compute Fault"
                 
@@ -568,6 +555,6 @@ if active_prompt:
                 "role": "assistant",
                 "content": full_response,
                 "status": status_val,
-                "mode": mode_val
+                "model": llm_model
             })
             st.rerun()
