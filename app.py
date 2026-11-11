@@ -329,9 +329,9 @@ if st.sidebar.button("🎭 Load Demo Sample Data", use_container_width=True):
     with st.sidebar.spinner("Injecting secure demo vectors..."):
         for filename, chunks in demo_docs.items():
             for i, chunk_text in enumerate(chunks):
-                collection.add(
+                collection.upsert(
                     documents=[chunk_text],
-                    ids=[f"demo_{filename}_chunk_{i}"],
+                    ids=[f"{st.session_state.session_id}_demo_{filename}_chunk_{i}"],
                     metadatas=[{"session_id": st.session_state.session_id, "filename": filename}]
                 )
             st.session_state.indexed_files.append({"filename": filename, "chunks": len(chunks)})
@@ -361,9 +361,9 @@ if uploaded_files:
                 chunks = extract_file_text(temp_path, uploaded_file.name)
                 if chunks:
                     for i, chunk in enumerate(chunks):
-                        collection.add(
+                        collection.upsert(
                             documents=[chunk],
-                            ids=[f"{uploaded_file.name}_chunk_{i}"],
+                            ids=[f"{st.session_state.session_id}_{uploaded_file.name}_chunk_{i}"],
                             metadatas=[{"session_id": st.session_state.session_id, "filename": uploaded_file.name}]
                         )
                     st.session_state.indexed_files.append({"filename": uploaded_file.name, "chunks": len(chunks)})
@@ -382,7 +382,11 @@ else:
         
         if st.sidebar.button(f"🗑️ Remove {display_name}", key=f"del_{f['filename']}", use_container_width=True):
             with st.sidebar.spinner("Purging database context vectors..."):
-                collection.delete(where={"filename": f["filename"]})
+                # Only this session's chunks: another visitor may have a file with the same name
+                collection.delete(where={"$and": [
+                    {"session_id": st.session_state.session_id},
+                    {"filename": f["filename"]},
+                ]})
                 st.session_state.indexed_files = [item for item in st.session_state.indexed_files if item["filename"] != f["filename"]]
                 local_file_target = os.path.join(session_vault_dir, f["filename"])
                 if os.path.exists(local_file_target):
@@ -513,7 +517,12 @@ if active_prompt:
             progress_box.markdown("<div class='glass-card'>⚙️ Querying local vector store tracking spaces...</div>", unsafe_allow_html=True)
             
             try:
-                results = collection.query(query_texts=[active_prompt], n_results=3)
+                # Search only this session's files; the collection is shared by every visitor
+                results = collection.query(
+                    query_texts=[active_prompt],
+                    n_results=3,
+                    where={"session_id": st.session_state.session_id},
+                )
                 context_documents = "\n---\n".join(results['documents'][0]) if results and results['documents'] else ""
             except Exception:
                 context_documents = ""
