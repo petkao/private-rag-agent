@@ -12,3 +12,5 @@ data/
 chroma_db/
 **/serverless_v2/
 **/session_*/
+# Personal profile used as sample input; keep it local
+/personal_profile.txt
